@@ -1,0 +1,49 @@
+---
+title: "Tonsil_GeoMx Analysis"
+output: html_document
+date: "2025-11-20"
+---
+
+## Normalization and DEGs for GeoMx were conducted by GeoMx DSP Analysis Suite (v3.1.2.12)
+
+## GSEA
+```{r}
+library(fgsea)
+library(data.table)
+library(ggplot2)
+
+DEG_df <- rownames_to_column(DEG_df, "Target.name")
+DEG_df <- DEG_df %>%
+  arrange(desc(Log2)) %>%
+  dplyr::select(Target.name, Log2)
+
+DEG_df <- deframe(DEG_df)
+
+fgseaRes <- fgsea(pathways = Signature_Gene_list, 
+                  stats    = DEG_df
+                  )
+plotEnrichment(Signature_Gene_list[["cluster"]],
+               DEG_df) + theme_dose()
+```
+
+
+## Scoring
+```{r}
+library(escape)
+Tonsil_GeoMX_Normalized_Matrix <- read.xlsx("/folder/Tonsil_GeoMX_Normalized_Matrix.xlsx", sheet = "TargetCountMatrix")
+Tonsil_GeoMX_Normalized_Matrix <- as.matrix(Tonsil_GeoMX_Normalized_Matrix)
+
+Tonsil_GeoMX_Normalized_Matrix <- escape.matrix(Tonsil_GeoMX_Normalized_Matrix, 
+               gene.sets = geneset, 
+               method = "ssGSEA",
+               groups = 30, min.size = NULL)
+
+## Scoring Normalization
+scale_range <- function(x) {
+  (x) / (max(x) - min(x))
+}
+
+Tonsil_GeoMX_Normalized_Matrix$geneset_scoring_norm <- scale_range(Tonsil_GeoMX_Normalized_Matrix$geneset_scoring)
+
+```
+

@@ -1,0 +1,384 @@
+---
+title: "Tonsil_scRNA_Processing & Analysis"
+output: html_document
+date: "2025-11-20"
+---
+
+
+```{r}
+library(Seurat)
+library(scDblFinder)
+library(dplyr)
+library(SeuratDisk)
+library(harmony)
+
+```
+
+
+## HTO Demultiplexing
+```{r}
+Tonsil_1.data <- Read10X(data.dir = "/folder1/sample_filtered_feature_bc_matrix")
+Tonsil_2.data <- Read10X(data.dir = "/folder2/sample_filtered_feature_bc_matrix")
+Tonsil_3.data <- Read10X(data.dir = "/folder3/sample_filtered_feature_bc_matrix")
+Tonsil_4.data <- Read10X(data.dir = "/folder4/sample_filtered_feature_bc_matrix")
+Tonsil_5.data <- Read10X(data.dir = "/folder5/sample_filtered_feature_bc_matrix")
+Tonsil_6.data <- Read10X(data.dir = "/folder6/sample_filtered_feature_bc_matrix")
+Tonsil_7.data <- Read10X(data.dir = "/folder7/sample_filtered_feature_bc_matrix")
+Tonsil_8.data <- Read10X(data.dir = "/folder8/sample_filtered_feature_bc_matrix")
+
+```
+
+```{r}
+Tonsil_1 <- CreateSeuratObject(counts = Tonsil_1.data$`Gene Expression`, project = "Tonsil_GEM1", min.cells = 3)
+Tonsil_2 <- CreateSeuratObject(counts = Tonsil_2.data$`Gene Expression`, project = "Tonsil_GEM2", min.cells = 3)
+Tonsil_3 <- CreateSeuratObject(counts = Tonsil_3.data$`Gene Expression`, project = "Tonsil_GEM3", min.cells = 3)
+Tonsil_4 <- CreateSeuratObject(counts = Tonsil_4.data$`Gene Expression`, project = "Tonsil_GEM4", min.cells = 3)
+Tonsil_5 <- CreateSeuratObject(counts = Tonsil_5.data$`Gene Expression`, project = "Tonsil_GEM5", min.cells = 3)
+Tonsil_6 <- CreateSeuratObject(counts = Tonsil_6.data$`Gene Expression`, project = "Tonsil_GEM6", min.cells = 3)
+Tonsil_7 <- CreateSeuratObject(counts = Tonsil_7.data$`Gene Expression`, project = "Tonsil_GEM7", min.cells = 3)
+Tonsil_8 <- CreateSeuratObject(counts = Tonsil_8.data$`Gene Expression`, project = "Tonsil_GEM8", min.cells = 3)
+```
+
+```{r}
+Tonsil_1[["HTO"]] <- CreateAssayObject(counts = Tonsil_1.data$`Antibody Capture`)
+Tonsil_2[["HTO"]] <- CreateAssayObject(counts = Tonsil_2.data$`Antibody Capture`)
+Tonsil_3[["HTO"]] <- CreateAssayObject(counts = Tonsil_3.data$`Antibody Capture`)
+Tonsil_4[["HTO"]] <- CreateAssayObject(counts = Tonsil_4.data$`Antibody Capture`)
+Tonsil_5[["HTO"]] <- CreateAssayObject(counts = Tonsil_5.data$`Antibody Capture`)
+Tonsil_6[["HTO"]] <- CreateAssayObject(counts = Tonsil_6.data$`Antibody Capture`)
+Tonsil_7[["HTO"]] <- CreateAssayObject(counts = Tonsil_7.data$`Antibody Capture`)
+Tonsil_8[["HTO"]] <- CreateAssayObject(counts = Tonsil_8.data$`Antibody Capture`)
+```
+
+```{r}
+
+Tonsil_1 <- NormalizeData(Tonsil_1, assay = "HTO", normalization.method = "CLR")
+Tonsil_2 <- NormalizeData(Tonsil_2, assay = "HTO", normalization.method = "CLR")
+Tonsil_3 <- NormalizeData(Tonsil_3, assay = "HTO", normalization.method = "CLR")
+Tonsil_4 <- NormalizeData(Tonsil_4, assay = "HTO", normalization.method = "CLR")
+Tonsil_5 <- NormalizeData(Tonsil_5, assay = "HTO", normalization.method = "CLR")
+Tonsil_6 <- NormalizeData(Tonsil_6, assay = "HTO", normalization.method = "CLR")
+Tonsil_7 <- NormalizeData(Tonsil_7, assay = "HTO", normalization.method = "CLR")
+Tonsil_8 <- NormalizeData(Tonsil_8, assay = "HTO", normalization.method = "CLR")
+
+```
+
+```{r}
+
+Tonsil_1 <- HTODemux(Tonsil_1, assay = "HTO", positive.quantile = 0.99)
+Tonsil_2 <- HTODemux(Tonsil_2, assay = "HTO", positive.quantile = 0.99)
+Tonsil_3 <- HTODemux(Tonsil_3, assay = "HTO", positive.quantile = 0.99)
+Tonsil_4 <- HTODemux(Tonsil_4, assay = "HTO", positive.quantile = 0.99)
+Tonsil_5 <- HTODemux(Tonsil_5, assay = "HTO", positive.quantile = 0.99)
+Tonsil_6 <- HTODemux(Tonsil_6, assay = "HTO", positive.quantile = 0.99)
+Tonsil_7 <- HTODemux(Tonsil_7, assay = "HTO", positive.quantile = 0.99)
+Tonsil_8 <- HTODemux(Tonsil_8, assay = "HTO", positive.quantile = 0.99)
+
+```
+
+```{r}
+
+Idents(Tonsil_1) <- "HTO_classification.global"
+Idents(Tonsil_2) <- "HTO_classification.global"
+Idents(Tonsil_3) <- "HTO_classification.global"
+Idents(Tonsil_4) <- "HTO_classification.global"
+Idents(Tonsil_5) <- "HTO_classification.global"
+Idents(Tonsil_6) <- "HTO_classification.global"
+Idents(Tonsil_7) <- "HTO_classification.global"
+Idents(Tonsil_8) <- "HTO_classification.global"
+
+Tonsil_1_singlet <- subset(Tonsil_1, subset = HTO_classification.global== "Negative", invert = TRUE)
+Tonsil_1_singlet <- subset(Tonsil_1_singlet, subset = HTO_classification.global== "Doublet", invert = TRUE)
+
+Tonsil_2_singlet <- subset(Tonsil_2, subset = HTO_classification.global== "Negative", invert = TRUE)
+Tonsil_2_singlet <- subset(Tonsil_2_singlet, subset = HTO_classification.global== "Doublet", invert = TRUE)
+
+Tonsil_3_singlet <- subset(Tonsil_3, subset = HTO_classification.global== "Negative", invert = TRUE)
+Tonsil_3_singlet <- subset(Tonsil_3_singlet, subset = HTO_classification.global== "Doublet", invert = TRUE)
+
+Tonsil_4_singlet <- subset(Tonsil_4, subset = HTO_classification.global== "Negative", invert = TRUE)
+Tonsil_4_singlet <- subset(Tonsil_4_singlet, subset = HTO_classification.global== "Doublet", invert = TRUE)
+
+Tonsil_5_singlet <- subset(Tonsil_5, subset = HTO_classification.global== "Negative", invert = TRUE)
+Tonsil_5_singlet <- subset(Tonsil_5_singlet, subset = HTO_classification.global== "Doublet", invert = TRUE)
+
+Tonsil_6_singlet <- subset(Tonsil_6, subset = HTO_classification.global== "Negative", invert = TRUE)
+Tonsil_6_singlet <- subset(Tonsil_6_singlet, subset = HTO_classification.global== "Doublet", invert = TRUE)
+
+Tonsil_7_singlet <- subset(Tonsil_7, subset = HTO_classification.global== "Negative", invert = TRUE)
+Tonsil_7_singlet <- subset(Tonsil_7_singlet, subset = HTO_classification.global== "Doublet", invert = TRUE)
+
+Tonsil_8_singlet <- subset(Tonsil_8, subset = HTO_classification.global== "Negative", invert = TRUE)
+Tonsil_8_singlet <- subset(Tonsil_8_singlet, subset = HTO_classification.global== "Doublet", invert = TRUE)
+
+```
+
+```{r}
+Tonsil1_3 <- subset(Tonsil_1_singlet, subset = hash.ID == "Tonsil1-3")
+Tonsil1_4 <- subset(Tonsil_1_singlet, subset = hash.ID == "Tonsil1-4")
+Tonsil1_6 <- subset(Tonsil_1_singlet, subset = hash.ID == "Tonsil1-6")
+
+Tonsil2_3 <- subset(Tonsil_2_singlet, subset = hash.ID == "Tonsil2-3")
+Tonsil2_5 <- subset(Tonsil_2_singlet, subset = hash.ID == "Tonsil2-5")
+Tonsil2_6 <- subset(Tonsil_2_singlet, subset = hash.ID == "Tonsil2-6")
+
+Tonsil4_1 <- subset(Tonsil_4_singlet, subset = hash.ID == "Tonsil4-1")
+Tonsil4_3 <- subset(Tonsil_4_singlet, subset = hash.ID == "Tonsil4-3")
+Tonsil4_6 <- subset(Tonsil_4_singlet, subset = hash.ID == "Tonsil4-6")
+
+Tonsil5_3 <- subset(Tonsil_5_singlet, subset = hash.ID == "Tonsil5-3")
+Tonsil5_6 <- subset(Tonsil_5_singlet, subset = hash.ID == "Tonsil5-6")
+
+Tonsil6_6 <- subset(Tonsil_6_singlet, subset = hash.ID == "Tonsil6-6")
+
+Tonsil7_3 <- subset(Tonsil_7_singlet, subset = hash.ID == "Tonsil7-3")
+Tonsil7_4 <- subset(Tonsil_7_singlet, subset = hash.ID == "Tonsil7-4")
+Tonsil7_6 <- subset(Tonsil_7_singlet, subset = hash.ID == "Tonsil7-6")
+
+Tonsil8_5 <- subset(Tonsil_8_singlet, subset = hash.ID == "Tonsil8-5")
+
+```
+
+## Discovery Cohort QC
+```{r}
+Tonsil1_3 <- CreateSeuratObject(counts = Tonsil1_3@assays$RNA$counts, project = "Tonsil", min.cells = 3, min.features = 200)
+Tonsil1_4 <- CreateSeuratObject(counts = Tonsil1_4@assays$RNA$counts, project = "Tonsil", min.cells = 3, min.features = 200)
+Tonsil1_6 <- CreateSeuratObject(counts = Tonsil1_6@assays$RNA$counts, project = "Tonsil", min.cells = 3, min.features = 200)
+Tonsil2_3 <- CreateSeuratObject(counts = Tonsil2_3@assays$RNA$counts, project = "Tonsil", min.cells = 3, min.features = 200)
+Tonsil2_5 <- CreateSeuratObject(counts = Tonsil2_5@assays$RNA$counts, project = "Tonsil", min.cells = 3, min.features = 200)
+Tonsil2_6 <- CreateSeuratObject(counts = Tonsil2_6@assays$RNA$counts, project = "Tonsil", min.cells = 3, min.features = 200)
+Tonsil4_1 <- CreateSeuratObject(counts = Tonsil4_1@assays$RNA$counts, project = "Tonsil", min.cells = 3, min.features = 200)
+Tonsil4_3 <- CreateSeuratObject(counts = Tonsil4_3@assays$RNA$counts, project = "Tonsil", min.cells = 3, min.features = 200)
+Tonsil4_6 <- CreateSeuratObject(counts = Tonsil4_6@assays$RNA$counts, project = "Tonsil", min.cells = 3, min.features = 200)
+Tonsil5_3 <- CreateSeuratObject(counts = Tonsil5_3@assays$RNA$counts, project = "Tonsil", min.cells = 3, min.features = 200)
+Tonsil5_6 <- CreateSeuratObject(counts = Tonsil5_6@assays$RNA$counts, project = "Tonsil", min.cells = 3, min.features = 200)
+Tonsil6_6 <- CreateSeuratObject(counts = Tonsil6_6@assays$RNA$counts, project = "Tonsil", min.cells = 3, min.features = 200)
+Tonsil7_3 <- CreateSeuratObject(counts = Tonsil7_3@assays$RNA$counts, project = "Tonsil", min.cells = 3, min.features = 200)
+Tonsil7_4 <- CreateSeuratObject(counts = Tonsil7_4@assays$RNA$counts, project = "Tonsil", min.cells = 3, min.features = 200)
+Tonsil7_6 <- CreateSeuratObject(counts = Tonsil7_6@assays$RNA$counts, project = "Tonsil", min.cells = 3, min.features = 200)
+Tonsil8_5 <- CreateSeuratObject(counts = Tonsil8_5@assays$RNA$counts, project = "Tonsil", min.cells = 3, min.features = 200)
+
+```
+
+```{r}
+Tonsil1_3[["percent.mt"]] <- PercentageFeatureSet(Tonsil1_3, pattern = "^MT-")
+Tonsil1_4[["percent.mt"]] <- PercentageFeatureSet(Tonsil1_4, pattern = "^MT-")
+Tonsil1_6[["percent.mt"]] <- PercentageFeatureSet(Tonsil1_6, pattern = "^MT-")
+Tonsil2_3[["percent.mt"]] <- PercentageFeatureSet(Tonsil2_3, pattern = "^MT-")
+Tonsil2_5[["percent.mt"]] <- PercentageFeatureSet(Tonsil2_5, pattern = "^MT-")
+Tonsil2_6[["percent.mt"]] <- PercentageFeatureSet(Tonsil2_6, pattern = "^MT-")
+Tonsil4_1[["percent.mt"]] <- PercentageFeatureSet(Tonsil4_1, pattern = "^MT-")
+Tonsil4_3[["percent.mt"]] <- PercentageFeatureSet(Tonsil4_3, pattern = "^MT-")
+Tonsil4_6[["percent.mt"]] <- PercentageFeatureSet(Tonsil4_6, pattern = "^MT-")
+Tonsil5_3[["percent.mt"]] <- PercentageFeatureSet(Tonsil5_3, pattern = "^MT-")
+Tonsil5_6[["percent.mt"]] <- PercentageFeatureSet(Tonsil5_6, pattern = "^MT-")
+Tonsil6_6[["percent.mt"]] <- PercentageFeatureSet(Tonsil6_6, pattern = "^MT-")
+Tonsil7_3[["percent.mt"]] <- PercentageFeatureSet(Tonsil7_3, pattern = "^MT-")
+Tonsil7_4[["percent.mt"]] <- PercentageFeatureSet(Tonsil7_4, pattern = "^MT-")
+Tonsil7_6[["percent.mt"]] <- PercentageFeatureSet(Tonsil7_6, pattern = "^MT-")
+Tonsil8_5[["percent.mt"]] <- PercentageFeatureSet(Tonsil8_5, pattern = "^MT-")
+```
+
+```{r}
+VlnPlot(Tonsil1_3, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
+VlnPlot(Tonsil1_4, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
+VlnPlot(Tonsil1_6, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
+VlnPlot(Tonsil2_3, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
+VlnPlot(Tonsil2_5, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
+VlnPlot(Tonsil2_6, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
+VlnPlot(Tonsil4_1, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
+VlnPlot(Tonsil4_3, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
+VlnPlot(Tonsil4_6, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
+VlnPlot(Tonsil5_3, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
+VlnPlot(Tonsil5_6, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
+VlnPlot(Tonsil6_6, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
+VlnPlot(Tonsil7_3, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
+VlnPlot(Tonsil7_4, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
+VlnPlot(Tonsil7_6, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
+VlnPlot(Tonsil8_5, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
+```
+
+```{r}
+Tonsil1_3 <- subset(Tonsil1_3, subset = nFeature_RNA > 200 & percent.mt < 10)
+Tonsil1_4 <- subset(Tonsil1_4, subset = nFeature_RNA > 200 & percent.mt < 10)
+Tonsil1_6 <- subset(Tonsil1_6, subset = nFeature_RNA > 200 & percent.mt < 10)
+Tonsil2_3 <- subset(Tonsil2_3, subset = nFeature_RNA > 200 & percent.mt < 10)
+
+Tonsil2_5 <- subset(Tonsil2_5, subset = nFeature_RNA > 200 & percent.mt < 10)
+Tonsil2_6 <- subset(Tonsil2_6, subset = nFeature_RNA > 200 & percent.mt < 10)
+Tonsil4_1 <- subset(Tonsil4_1, subset = nFeature_RNA > 200 & percent.mt < 10)
+Tonsil4_3 <- subset(Tonsil4_3, subset = nFeature_RNA > 200 & percent.mt < 10)
+
+Tonsil4_6 <- subset(Tonsil4_6, subset = nFeature_RNA > 200 & percent.mt < 10)
+Tonsil5_3 <- subset(Tonsil5_3, subset = nFeature_RNA > 200 & percent.mt < 10)
+Tonsil5_6 <- subset(Tonsil5_6, subset = nFeature_RNA > 200 & percent.mt < 10)
+Tonsil6_6 <- subset(Tonsil6_6, subset = nFeature_RNA > 200 & percent.mt < 10)
+
+Tonsil7_3 <- subset(Tonsil7_3, subset = nFeature_RNA > 200 & percent.mt < 10)
+Tonsil7_4 <- subset(Tonsil7_4, subset = nFeature_RNA > 200 & percent.mt < 10)
+Tonsil7_6 <- subset(Tonsil7_6, subset = nFeature_RNA > 200 & percent.mt < 10)
+Tonsil8_5 <- subset(Tonsil8_5, subset = nFeature_RNA > 200 & percent.mt < 10)
+```
+
+```{r}
+## scDblFinder
+
+Tonsil1_3 <- NormalizeData(Tonsil1_3)
+Tonsil1_4 <- NormalizeData(Tonsil1_4)
+Tonsil1_6 <- NormalizeData(Tonsil1_6)
+Tonsil2_3 <- NormalizeData(Tonsil2_3)
+Tonsil2_5 <- NormalizeData(Tonsil2_5)
+Tonsil2_6 <- NormalizeData(Tonsil2_6)
+Tonsil4_1 <- NormalizeData(Tonsil4_1)
+Tonsil4_3 <- NormalizeData(Tonsil4_3)
+Tonsil4_6 <- NormalizeData(Tonsil4_6)
+Tonsil5_3 <- NormalizeData(Tonsil5_3)
+Tonsil5_6 <- NormalizeData(Tonsil5_6)
+Tonsil6_6 <- NormalizeData(Tonsil6_6)
+Tonsil7_3 <- NormalizeData(Tonsil7_3)
+Tonsil7_4 <- NormalizeData(Tonsil7_4)
+Tonsil7_6 <- NormalizeData(Tonsil7_6)
+Tonsil8_5 <- NormalizeData(Tonsil8_5)
+
+Tonsil1_3_sce <- as.SingleCellExperiment(Tonsil1_3)
+Tonsil1_4_sce <- as.SingleCellExperiment(Tonsil1_4)
+Tonsil1_6_sce <- as.SingleCellExperiment(Tonsil1_6)
+Tonsil2_3_sce <- as.SingleCellExperiment(Tonsil2_3)
+Tonsil2_5_sce <- as.SingleCellExperiment(Tonsil2_5)
+Tonsil2_6_sce <- as.SingleCellExperiment(Tonsil2_6)
+Tonsil4_1_sce <- as.SingleCellExperiment(Tonsil4_1)
+Tonsil4_3_sce <- as.SingleCellExperiment(Tonsil4_3)
+Tonsil4_6_sce <- as.SingleCellExperiment(Tonsil4_6)
+Tonsil5_3_sce <- as.SingleCellExperiment(Tonsil5_3)
+Tonsil5_6_sce <- as.SingleCellExperiment(Tonsil5_6)
+Tonsil6_6_sce <- as.SingleCellExperiment(Tonsil6_6)
+Tonsil7_3_sce <- as.SingleCellExperiment(Tonsil7_3)
+Tonsil7_4_sce <- as.SingleCellExperiment(Tonsil7_4)
+Tonsil7_6_sce <- as.SingleCellExperiment(Tonsil7_6)
+Tonsil8_5_sce <- as.SingleCellExperiment(Tonsil8_5)
+
+Tonsil1_3_sce <- scDblFinder(Tonsil1_3_sce)
+Tonsil1_4_sce <- scDblFinder(Tonsil1_4_sce)
+Tonsil1_6_sce <- scDblFinder(Tonsil1_6_sce)
+Tonsil2_3_sce <- scDblFinder(Tonsil2_3_sce)
+Tonsil2_5_sce <- scDblFinder(Tonsil2_5_sce)
+Tonsil2_6_sce <- scDblFinder(Tonsil2_6_sce)
+Tonsil4_1_sce <- scDblFinder(Tonsil4_1_sce)
+Tonsil4_3_sce <- scDblFinder(Tonsil4_3_sce)
+Tonsil4_6_sce <- scDblFinder(Tonsil4_6_sce)
+Tonsil5_3_sce <- scDblFinder(Tonsil5_3_sce)
+Tonsil5_6_sce <- scDblFinder(Tonsil5_6_sce)
+Tonsil6_6_sce <- scDblFinder(Tonsil6_6_sce)
+Tonsil7_3_sce <- scDblFinder(Tonsil7_3_sce)
+Tonsil7_4_sce <- scDblFinder(Tonsil7_4_sce)
+Tonsil7_6_sce <- scDblFinder(Tonsil7_6_sce)
+Tonsil8_5_sce <- scDblFinder(Tonsil8_5_sce)
+
+Tonsil1_3$Doublet <- Tonsil1_3_sce$scDblFinder.class
+Tonsil1_4$Doublet <- Tonsil1_4_sce$scDblFinder.class
+Tonsil1_6$Doublet <- Tonsil1_6_sce$scDblFinder.class
+Tonsil2_3$Doublet <- Tonsil2_3_sce$scDblFinder.class
+Tonsil2_5$Doublet <- Tonsil2_5_sce$scDblFinder.class
+Tonsil2_6$Doublet <- Tonsil2_6_sce$scDblFinder.class
+Tonsil4_1$Doublet <- Tonsil4_1_sce$scDblFinder.class
+Tonsil4_3$Doublet <- Tonsil4_3_sce$scDblFinder.class
+Tonsil4_6$Doublet <- Tonsil4_6_sce$scDblFinder.class
+Tonsil5_3$Doublet <- Tonsil5_3_sce$scDblFinder.class
+Tonsil5_6$Doublet <- Tonsil5_6_sce$scDblFinder.class
+Tonsil6_6$Doublet <- Tonsil6_6_sce$scDblFinder.class
+Tonsil7_3$Doublet <- Tonsil7_3_sce$scDblFinder.class
+Tonsil7_4$Doublet <- Tonsil7_4_sce$scDblFinder.class
+Tonsil7_6$Doublet <- Tonsil7_6_sce$scDblFinder.class
+Tonsil8_5$Doublet <- Tonsil8_5_sce$scDblFinder.class
+
+Tonsil1_3 <- subset(Tonsil1_3, subset = Doublet == "singlet")
+Tonsil1_4 <- subset(Tonsil1_4, subset = Doublet == "singlet")
+Tonsil1_6 <- subset(Tonsil1_6, subset = Doublet == "singlet")
+Tonsil2_3 <- subset(Tonsil2_3, subset = Doublet == "singlet")
+Tonsil2_5 <- subset(Tonsil2_5, subset = Doublet == "singlet")
+Tonsil2_6 <- subset(Tonsil2_6, subset = Doublet == "singlet")
+Tonsil4_1 <- subset(Tonsil4_1, subset = Doublet == "singlet")
+Tonsil4_3 <- subset(Tonsil4_3, subset = Doublet == "singlet")
+Tonsil4_6 <- subset(Tonsil4_6, subset = Doublet == "singlet")
+Tonsil5_3 <- subset(Tonsil5_3, subset = Doublet == "singlet")
+Tonsil5_6 <- subset(Tonsil5_6, subset = Doublet == "singlet")
+Tonsil6_6 <- subset(Tonsil6_6, subset = Doublet == "singlet")
+Tonsil7_3 <- subset(Tonsil7_3, subset = Doublet == "singlet")
+Tonsil7_4 <- subset(Tonsil7_4, subset = Doublet == "singlet")
+Tonsil7_6 <- subset(Tonsil7_6, subset = Doublet == "singlet")
+Tonsil8_5 <- subset(Tonsil8_5, subset = Doublet == "singlet")
+```
+
+
+## Merge & Clustering 
+```{r}
+Tonsil <- merge(Tonsil1_3, y=c(Tonsil1_4, Tonsil1_6, Tonsil2_3, Tonsil2_5, Tonsil2_6, Tonsil4_1, Tonsil4_3, Tonsil4_6, Tonsil5_3, Tonsil5_6, Tonsil6_6, Tonsil7_3, Tonsil7_4, Tonsil7_6, Tonsil8_5), add.cell.ids = c("Tonsil1","Tonsil1","Tonsil1","Tonsil2","Tonsil2","Tonsil2","Tonsil4","Tonsil4","Tonsil4","Tonsil5","Tonsil5","Tonsil6","Tonsil7","Tonsil7","Tonsil7","Tonsil8"), project = "Tonsil")
+```
+
+```{r}
+Tonsil <- NormalizeData(Tonsil) 
+Tonsil <- FindVariableFeatures(Tonsil) 
+Tonsil <- ScaleData(Tonsil) 
+Tonsil <- RunPCA(Tonsil, verbose = TRUE)
+ElbowPlot(Tonsil, ndims=50)
+
+Tonsil_inte <- IntegrateLayers(object = Tonsil, method = HarmonyIntegration, orig.reduction = "pca", new.reduction = "harmony",verbose = FALSE)
+Tonsil_inte[["RNA"]] <- JoinLayers(Tonsil_inte[["RNA"]])
+ElbowPlot(Tonsil_inte, ndims=50)
+
+Tonsil_inte_20 <- RunUMAP(Tonsil_inte, reduction= 'harmony', dims = 1:20) 
+```
+
+```{r}
+Tonsil_inte_20 <- FindNeighbors(Tonsil_inte_20, reduction = "harmony", dims = 1:20) 
+Tonsil_inte_20_1.0 <- FindClusters(Tonsil_inte_20, resolution =1.0)
+
+```
+
+## DEG
+```{r}
+Tonsil_inte_20_1.0_DEG <- FindAllMarkers(Tonsil_inte_20_1.0, only.pos = TRUE, min.pct = 0.25, logfc.threshold = 0.25)
+Tonsil_inte_20_1.0_DEG %>%
+    group_by(cluster) %>%
+    slice_max(n = 2, order_by = avg_log2FC)
+```
+
+## Pathway Analysis
+```{r}
+library(org.Hs.eg.db)
+library(clusterProfiler)
+library(pathview)
+library(DOSE)
+
+DEG_list <- DEG_list %>% map(~{
+  
+  # here for macaque
+  gene.df <-  AnnotationDbi::select(org.Hs.eg.db,
+                    keys = .x,
+                    columns = c("ENTREZID", "SYMBOL"),
+                    keytype = "SYMBOL")
+  
+  gene <- gene.df$ENTREZID
+  gene <- gene[which(!is.na(gene))]
+  gene <- unique(gene)
+  
+  return(gene)
+})
+
+Pathway <- DEG_list[] %>% map(~{
+  
+  eGO <- enrichGO(
+    gene          = .x,
+    OrgDb         = org.Hs.eg.db,
+    ont           = "BP",
+    pAdjustMethod = "BH",
+    pvalueCutoff  = 0.05,
+    readable      = TRUE
+  )
+  
+  return(eGO)
+ 
+})
+
+```
+

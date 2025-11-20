@@ -1,0 +1,135 @@
+---
+title: "Tonsil_scRNA Validation Cohort"
+output: html_document
+date: "2025-11-20"
+---
+## Validation cohort object processing
+```{r}
+library(Seurat)
+library(BiocParallel)
+library(SingleCellExperiment)
+library(scDblFinder)
+library(pheatmap)
+library(ComplexHeatmap)
+library(circlize)
+library(SingleR)
+```
+
+```{r}
+Tonsil_1_singlet <- readRDS("/folder/Tonsil_1_singlet.rds")
+Tonsil_2_singlet <- readRDS("/folder/Tonsil_2_singlet.rds")
+Tonsil_3_singlet <- readRDS("/folder/Tonsil_3_singlet.rds")
+Tonsil_4_singlet <- readRDS("/folder/Tonsil_4_singlet.rds")
+Tonsil_5_singlet <- readRDS("/folder/Tonsil_5_singlet.rds")
+Tonsil_6_singlet <- readRDS("/folder/Tonsil_6_singlet.rds")
+Tonsil_7_singlet <- readRDS("/folder/Tonsil_7_singlet.rds")
+Tonsil_8_singlet <- readRDS("/folder/Tonsil_8_singlet.rds")
+```
+
+```{r}
+Tonsil1 <- CreateSeuratObject(counts = Tonsil_1_singlet@assays$RNA$counts, project = "Tonsil1", min.cells = 3, min.features = 200)
+Tonsil2 <- CreateSeuratObject(counts = Tonsil_2_singlet@assays$RNA$counts, project = "Tonsil2", min.cells = 3, min.features = 200)
+Tonsil3 <- CreateSeuratObject(counts = Tonsil_3_singlet@assays$RNA$counts, project = "Tonsil3", min.cells = 3, min.features = 200)
+Tonsil4 <- CreateSeuratObject(counts = Tonsil_4_singlet@assays$RNA$counts, project = "Tonsil4", min.cells = 3, min.features = 200)
+Tonsil5 <- CreateSeuratObject(counts = Tonsil_5_singlet@assays$RNA$counts, project = "Tonsil5", min.cells = 3, min.features = 200)
+Tonsil6 <- CreateSeuratObject(counts = Tonsil_6_singlet@assays$RNA$counts, project = "Tonsil6", min.cells = 3, min.features = 200)
+Tonsil7 <- CreateSeuratObject(counts = Tonsil_7_singlet@assays$RNA$counts, project = "Tonsil7", min.cells = 3, min.features = 200)
+Tonsil8 <- CreateSeuratObject(counts = Tonsil_8_singlet@assays$RNA$counts, project = "Tonsil8", min.cells = 3, min.features = 200)
+```
+
+```{r}
+Tonsil <- merge(Tonsil1, y=c(Tonsil2, Tonsil3, Tonsil4, Tonsil5, Tonsil6, Tonsil7, Tonsil8), add.cell.ids = c("Tonsil1","Tonsil2","Tonsil3","Tonsil4","Tonsil5","Tonsil6","Tonsil7","Tonsil8"), project = "Tonsil")
+```
+
+```{r}
+Tonsil[["percent.mt"]] <- PercentageFeatureSet(Tonsil, pattern = "^MT-")
+
+Tonsil_sub <- subset(Tonsil, subset = nFeature_RNA > 200 & percent.mt < 10)
+```
+
+```{r}
+Tonsil_sub <- NormalizeData(Tonsil_sub) 
+
+```
+
+```{r}
+
+Tonsil_sub_sce <- Tonsil_sub
+Tonsil_sub_sce[["RNA"]] <- JoinLayers(Tonsil_sub_sce[["RNA"]])
+Tonsil_sub_sce <- as.SingleCellExperiment(Tonsil_sub_sce)
+Tonsil_sub_sce <- scDblFinder(Tonsil_sub_sce, samples="hash.ID", BPPARAM=MulticoreParam(3))
+colData(Tonsil_sub_sce)
+Tonsil_sub$Doublet <- Tonsil_sub_sce$scDblFinder.class
+Tonsil_sub_singlet <- subset(Tonsil_sub, subset = Doublet == "singlet")
+```
+
+
+```{r}
+# Get the unique samples from Tonsil_sub_singlet$hash.ID that are not in Tonsil_inte_20_1.0$Individual
+unique_samples <- setdiff(unique(Tonsil_sub_singlet$hash.ID), unique(Tonsil_inte_20_1.0$Individual))
+
+# Subset the Tonsil_sub_singlet to keep only the unique samples
+Tonsil_Hypertrophy_Validation <- subset(Tonsil_sub_singlet, subset = hash.ID %in% unique_samples)
+```
+
+```{r}
+Tonsil_Hypertrophy_Validation <- FindVariableFeatures(Tonsil_Hypertrophy_Validation) 
+Tonsil_Hypertrophy_Validation <- ScaleData(Tonsil_Hypertrophy_Validation) 
+Tonsil_Hypertrophy_Validation <- RunPCA(Tonsil_Hypertrophy_Validation, verbose = TRUE)
+ElbowPlot(Tonsil_Hypertrophy_Validation, ndims=50)
+
+Tonsil_Hypertrophy_Validation <- RunUMAP(Tonsil_Hypertrophy_Validation, reduction= 'harmony', dims = 1:22) 
+```
+
+```{r}
+
+Tonsil_inte_20_1.0<-JoinLayers(Tonsil_inte_20_1.0)
+Tonsil_inte_20_1.0_sce <-as.SingleCellExperiment(Tonsil_inte_20_1.0)
+Tonsil_inte_20_1.0_sce@assays@data$counts <- NULL
+
+Tonsil_Hypertrophy_Validation_sce <-as.SingleCellExperiment(Tonsil_Hypertrophy_Validation)
+Tonsil_Hypertrophy_Validation_sce@assays@data$counts <- NULL
+
+Tonsil_Hypertrophy_Validation_sce <- SingleR(test = Tonsil_Hypertrophy_Validation_sce, ref = Tonsil_inte_20_1.0_sce, de.method="classic",
+    labels = Tonsil_inte_20_1.0_sce$Anno)
+```
+
+```{r}
+plotScoreHeatmap(Tonsil_Hypertrophy_Validation_sce, order.by = "labels")
+```
+
+## Correlation
+```{r}
+Tonsil_inte_20_1.0$Anno <- factor(x = Tonsil_inte_20_1.0$Anno, levels = c("Naive B cell","Naive B cell - Early Activation","GC-Committed NBC","FCRL4+ MBC","FCRL4- MBC","Proliferating FCRL4+ MBC","Pre GC","DZ B cell-G1/S phase","DZ B cell-S phase","DZ B cell-G2/M phase","DZ-LZ Transition B cell","LZ B cell","Plasmablast","Plasma cell","CD4+ T cell-Naive","CD4+ T cell-Memory","T_FH","Follicular_Tr1","Treg","CD8+ T cell-Naive","CD8+ T cell-Memory", "CD8+ T cell-CTL","Th17","rd T cell","DNT","Proliferating T cell","NK cell","cDC1","cDC2","pDC","LAMP3+ DC","Monocyte","Macrophage","FDC","FRC","Epithelial cell"))
+Tonsil_Hypertrophy_Validation$singleR_Anno <- factor(x=Tonsil_Hypertrophy_Validation$singleR_Anno, levels = c("Naive B cell","Naive B cell - Early Activation","GC-Committed NBC","FCRL4+ MBC","FCRL4- MBC","Proliferating FCRL4+ MBC","Pre GC","DZ B cell-G1/S phase","DZ B cell-S phase","DZ B cell-G2/M phase","DZ-LZ Transition B cell","LZ B cell","Plasmablast","Plasma cell","CD4+ T cell-Naive","CD4+ T cell-Memory","T_FH","Follicular_Tr1","Treg","CD8+ T cell-Naive","CD8+ T cell-Memory", "CD8+ T cell-CTL","Th17","rd T cell","DNT","Proliferating T cell","NK cell","cDC1","cDC2","pDC","LAMP3+ DC","Monocyte","Macrophage","FDC","FRC","Epithelial cell"))
+
+
+validation_avg <- AverageExpression(Tonsil_Hypertrophy_Validation, group.by = "singleR_Anno")$RNA
+discovery_avg <- AverageExpression(Tonsil_inte_20_1.0, group.by = "Anno")$RNA
+common_genes <- intersect(rownames(discovery_avg), rownames(validation_avg))
+discovery_avg <- discovery_avg[common_genes, ]
+validation_avg <- validation_avg[common_genes, ]
+
+discovery_avg_dense <- as.matrix(discovery_avg)
+validation_avg_dense <- as.matrix(validation_avg)
+
+## rownmae 의 순서 동일해야함
+all.equal(rownames(discovery_avg_dense), rownames(validation_avg_dense))
+all.equal(colnames(discovery_avg_dense), colnames(validation_avg_dense))
+
+correlation_matrix <- cor(discovery_avg_dense, validation_avg_dense, method = "pearson")
+
+highlight_matrix <- apply(correlation_matrix, 1, function(x) x == max(x))
+
+# Create the heatmap
+pheatmap(
+  correlation_matrix,
+  main = "Correlation Matrix Between Discovery and Validation Cohorts",
+  cluster_rows = FALSE,
+  cluster_cols = FALSE,
+  display_numbers = FALSE,
+  fontsize_number = 8,
+  number_color = "black"
+)
+```
+

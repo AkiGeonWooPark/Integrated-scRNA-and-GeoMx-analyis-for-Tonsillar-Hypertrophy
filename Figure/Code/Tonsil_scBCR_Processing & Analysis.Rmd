@@ -1,0 +1,253 @@
+---
+title: "Tonsil_scBCR_Processing & Analysis"
+output: html_document
+date: "2025-11-20"
+---
+
+```{r}
+# load libraries
+library(alakazam)
+library(data.table)
+library(dowser)
+library(dplyr)
+library(ggplot2)
+library(scoper)
+library(shazam)
+library(airr)
+```
+
+```{r}
+
+data_1_a <- read_rearrangement('folder1/filtered_contig_igblast_db-pass.tsv')
+data_2_a <- read_rearrangement('folder2/filtered_contig_igblast_db-pass.tsv')
+data_3_a <- read_rearrangement('folder3/filtered_contig_igblast_db-pass.tsv')
+data_4_a <- read_rearrangement('folder4/filtered_contig_igblast_db-pass.tsv')
+data_5_a <- read_rearrangement('folder5/filtered_contig_igblast_db-pass.tsv')
+data_6_a <- read_rearrangement('folder6/filtered_contig_igblast_db-pass.tsv')
+data_7_a <- read_rearrangement('folder7/filtered_contig_igblast_db-pass.tsv')
+data_8_a <- read_rearrangement('folder8/filtered_contig_igblast_db-pass.tsv')
+
+```
+
+
+```{r}
+data_1_a <- data_1_a %>% filter(productive)
+data_2_a <- data_2_a %>% filter(productive)
+data_3_a <- data_3_a %>% filter(productive)
+data_4_a <- data_4_a %>% filter(productive)
+data_5_a <- data_5_a %>% filter(productive)
+data_6_a <- data_6_a %>% filter(productive)
+data_7_a <- data_7_a %>% filter(productive)
+data_8_a <- data_8_a %>% filter(productive)
+```
+
+```{r}
+# remove cells with multiple heavy chain
+multi_heavy_1 <- table(filter(data_1_a, locus == "IGH")$cell_id)
+multi_heavy_2 <- table(filter(data_2_a, locus == "IGH")$cell_id)
+multi_heavy_3 <- table(filter(data_3_a, locus == "IGH")$cell_id)
+multi_heavy_4 <- table(filter(data_4_a, locus == "IGH")$cell_id)
+multi_heavy_5 <- table(filter(data_5_a, locus == "IGH")$cell_id)
+multi_heavy_6 <- table(filter(data_6_a, locus == "IGH")$cell_id)
+multi_heavy_7 <- table(filter(data_7_a, locus == "IGH")$cell_id)
+multi_heavy_8 <- table(filter(data_8_a, locus == "IGH")$cell_id)
+
+multi_heavy_cells_1 <- names(multi_heavy_1)[multi_heavy_1 > 1]
+multi_heavy_cells_2 <- names(multi_heavy_2)[multi_heavy_2 > 1]
+multi_heavy_cells_3 <- names(multi_heavy_3)[multi_heavy_3 > 1]
+multi_heavy_cells_4 <- names(multi_heavy_4)[multi_heavy_4 > 1]
+multi_heavy_cells_5 <- names(multi_heavy_5)[multi_heavy_5 > 1]
+multi_heavy_cells_6 <- names(multi_heavy_6)[multi_heavy_6 > 1]
+multi_heavy_cells_7 <- names(multi_heavy_7)[multi_heavy_7 > 1]
+multi_heavy_cells_8 <- names(multi_heavy_8)[multi_heavy_8 > 1]
+
+data_1_a <- filter(data_1_a, !cell_id %in% multi_heavy_cells_1)
+data_2_a <- filter(data_2_a, !cell_id %in% multi_heavy_cells_2)
+data_3_a <- filter(data_3_a, !cell_id %in% multi_heavy_cells_3)
+data_4_a <- filter(data_4_a, !cell_id %in% multi_heavy_cells_4)
+data_5_a <- filter(data_5_a, !cell_id %in% multi_heavy_cells_5)
+data_6_a <- filter(data_6_a, !cell_id %in% multi_heavy_cells_6)
+data_7_a <- filter(data_7_a, !cell_id %in% multi_heavy_cells_7)
+data_8_a <- filter(data_8_a, !cell_id %in% multi_heavy_cells_8)
+
+cat(paste("There are", nrow(data_1_a), "rows in the data after filtering out cells with multiple heavy chains.\n"))
+```
+
+```{r}
+# split cells by heavy and light chains
+heavy_cells_1 <- filter(data_1_a, locus == "IGH")$cell_id
+heavy_cells_2 <- filter(data_2_a, locus == "IGH")$cell_id
+heavy_cells_3 <- filter(data_3_a, locus == "IGH")$cell_id
+heavy_cells_4 <- filter(data_4_a, locus == "IGH")$cell_id
+heavy_cells_5 <- filter(data_5_a, locus == "IGH")$cell_id
+heavy_cells_6 <- filter(data_6_a, locus == "IGH")$cell_id
+heavy_cells_7 <- filter(data_7_a, locus == "IGH")$cell_id
+heavy_cells_8 <- filter(data_8_a, locus == "IGH")$cell_id
+
+light_cells_1 <- filter(data_1_a, locus == "IGK" | locus == "IGL")$cell_id
+light_cells_2 <- filter(data_2_a, locus == "IGK" | locus == "IGL")$cell_id
+light_cells_3 <- filter(data_3_a, locus == "IGK" | locus == "IGL")$cell_id
+light_cells_4 <- filter(data_4_a, locus == "IGK" | locus == "IGL")$cell_id
+light_cells_5 <- filter(data_5_a, locus == "IGK" | locus == "IGL")$cell_id
+light_cells_6 <- filter(data_6_a, locus == "IGK" | locus == "IGL")$cell_id
+light_cells_7 <- filter(data_7_a, locus == "IGK" | locus == "IGL")$cell_id
+light_cells_8 <- filter(data_8_a, locus == "IGK" | locus == "IGL")$cell_id
+
+no_heavy_cells_1 <- light_cells_1[which(!light_cells_1 %in% heavy_cells_1)]
+no_heavy_cells_2 <- light_cells_2[which(!light_cells_2 %in% heavy_cells_2)]
+no_heavy_cells_3 <- light_cells_3[which(!light_cells_3 %in% heavy_cells_3)]
+no_heavy_cells_4 <- light_cells_4[which(!light_cells_4 %in% heavy_cells_4)]
+no_heavy_cells_5 <- light_cells_5[which(!light_cells_5 %in% heavy_cells_5)]
+no_heavy_cells_6 <- light_cells_6[which(!light_cells_6 %in% heavy_cells_6)]
+no_heavy_cells_7 <- light_cells_7[which(!light_cells_7 %in% heavy_cells_7)]
+no_heavy_cells_8 <- light_cells_8[which(!light_cells_8 %in% heavy_cells_8)]
+
+data_1_a <- filter(data_1_a, !cell_id %in% no_heavy_cells_1)
+data_2_a <- filter(data_2_a, !cell_id %in% no_heavy_cells_2)
+data_3_a <- filter(data_3_a, !cell_id %in% no_heavy_cells_3)
+data_4_a <- filter(data_4_a, !cell_id %in% no_heavy_cells_4)
+data_5_a <- filter(data_5_a, !cell_id %in% no_heavy_cells_5)
+data_6_a <- filter(data_6_a, !cell_id %in% no_heavy_cells_6)
+data_7_a <- filter(data_7_a, !cell_id %in% no_heavy_cells_7)
+data_8_a <- filter(data_8_a, !cell_id %in% no_heavy_cells_8)
+
+cat(paste("There are", nrow(data_1_a), "rows in the data after filtering out cells without heavy chains."))
+```
+
+```{r}
+data_1_a$cell_id_unique <- paste0("Tonsil1", "_", data_1_a$cell_id)
+data_2_a$cell_id_unique <- paste0("Tonsil2", "_", data_2_a$cell_id)
+data_3_a$cell_id_unique <- paste0("Tonsil3", "_", data_3_a$cell_id)
+data_4_a$cell_id_unique <- paste0("Tonsil4", "_", data_4_a$cell_id)
+data_5_a$cell_id_unique <- paste0("Tonsil5", "_", data_5_a$cell_id)
+data_6_a$cell_id_unique <- paste0("Tonsil6", "_", data_6_a$cell_id)
+data_7_a$cell_id_unique <- paste0("Tonsil7", "_", data_7_a$cell_id)
+data_8_a$cell_id_unique <- paste0("Tonsil8", "_", data_8_a$cell_id)
+
+Tonsil_BCR <- rbind(data_1_a, data_2_a, data_3_a, data_4_a, data_5_a, data_6_a, data_7_a, data_8_a)
+
+```
+
+```{r}
+
+dist_nearest_1_6 <- distToNearest(dplyr::filter(Tonsil_BCR, locus == "IGH",
+                                            individual == "Tonsil1_6"), )
+dist_nearest_1_3 <- distToNearest(dplyr::filter(Tonsil_BCR, locus == "IGH",
+                                            individual == "Tonsil1_3"), )
+dist_nearest_1_4 <- distToNearest(dplyr::filter(Tonsil_BCR, locus == "IGH",
+                                            individual == "Tonsil1_4"), )
+dist_nearest_2_5 <- distToNearest(dplyr::filter(Tonsil_BCR, locus == "IGH",
+                                            individual == "Tonsil2_5"), )
+dist_nearest_2_3 <- distToNearest(dplyr::filter(Tonsil_BCR, locus == "IGH",
+                                            individual == "Tonsil2_3"), )
+dist_nearest_2_6 <- distToNearest(dplyr::filter(Tonsil_BCR, locus == "IGH",
+                                            individual == "Tonsil2_6"), )
+dist_nearest_4_1 <- distToNearest(dplyr::filter(Tonsil_BCR, locus == "IGH",
+                                            individual == "Tonsil4_1"), )
+dist_nearest_4_3 <- distToNearest(dplyr::filter(Tonsil_BCR, locus == "IGH",
+                                            individual == "Tonsil4_3"), )
+dist_nearest_4_6 <- distToNearest(dplyr::filter(Tonsil_BCR, locus == "IGH",
+                                            individual == "Tonsil4_6"), )
+dist_nearest_5_6 <- distToNearest(dplyr::filter(Tonsil_BCR, locus == "IGH",
+                                            individual == "Tonsil5_6"), )
+dist_nearest_5_3 <- distToNearest(dplyr::filter(Tonsil_BCR, locus == "IGH",
+                                            individual == "Tonsil5_3"), )
+dist_nearest_6_6 <- distToNearest(dplyr::filter(Tonsil_BCR, locus == "IGH",
+                                            individual == "Tonsil6_6"), )
+dist_nearest_7_4 <- distToNearest(dplyr::filter(Tonsil_BCR, locus == "IGH",
+                                            individual == "Tonsil7_4"), )
+dist_nearest_7_6 <- distToNearest(dplyr::filter(Tonsil_BCR, locus == "IGH",
+                                            individual == "Tonsil7_6"), )
+dist_nearest_7_3 <- distToNearest(dplyr::filter(Tonsil_BCR, locus == "IGH",
+                                            individual == "Tonsil7_3"), )
+dist_nearest_8_5 <- distToNearest(dplyr::filter(Tonsil_BCR, locus == "IGH",
+                                            individual == "Tonsil8_5"), )
+```
+
+```{r}
+threshold_output_1_6 <- shazam::findThreshold(dist_nearest_1_6$dist_nearest,
+                                  method = "gmm", model = "gamma-norm",
+                                  cutoff = "user", spc = 0.995)
+threshold_output_1_3 <- shazam::findThreshold(dist_nearest_1_3$dist_nearest,
+                                  method = "gmm", model = "gamma-norm",
+                                  cutoff = "user", spc = 0.995)
+threshold_output_1_4 <- shazam::findThreshold(dist_nearest_1_4$dist_nearest,
+                                  method = "gmm", model = "gamma-norm",
+                                  cutoff = "user", spc = 0.995)
+threshold_output_2_5 <- shazam::findThreshold(dist_nearest_2_5$dist_nearest,
+                                  method = "gmm", model = "gamma-norm",
+                                  cutoff = "user", spc = 0.995)
+threshold_output_2_3 <- shazam::findThreshold(dist_nearest_2_3$dist_nearest,
+                                  method = "gmm", model = "gamma-norm",
+                                  cutoff = "user", spc = 0.995)
+threshold_output_2_6 <- shazam::findThreshold(dist_nearest_2_6$dist_nearest,
+                                  method = "gmm", model = "gamma-norm",
+                                  cutoff = "user", spc = 0.995)
+threshold_output_4_1 <- shazam::findThreshold(dist_nearest_4_1$dist_nearest,
+                                  method = "gmm", model = "gamma-norm",
+                                  cutoff = "user", spc = 0.995)
+threshold_output_4_3 <- shazam::findThreshold(dist_nearest_4_3$dist_nearest,
+                                  method = "gmm", model = "gamma-norm",
+                                  cutoff = "user", spc = 0.995)
+threshold_output_4_6 <- shazam::findThreshold(dist_nearest_4_6$dist_nearest,
+                                  method = "gmm", model = "gamma-norm",
+                                  cutoff = "user", spc = 0.995)
+threshold_output_5_6 <- shazam::findThreshold(dist_nearest_5_6$dist_nearest,
+                                  method = "gmm", model = "gamma-norm",
+                                  cutoff = "user", spc = 0.995)
+threshold_output_5_3 <- shazam::findThreshold(dist_nearest_5_3$dist_nearest,
+                                  method = "gmm", model = "gamma-norm",
+                                  cutoff = "user", spc = 0.995)
+threshold_output_6_6 <- shazam::findThreshold(dist_nearest_6_6$dist_nearest,
+                                  method = "gmm", model = "gamma-norm",
+                                  cutoff = "user", spc = 0.995)
+threshold_output_7_4 <- shazam::findThreshold(dist_nearest_7_4$dist_nearest,
+                                  method = "gmm", model = "gamma-norm",
+                                  cutoff = "user", spc = 0.995)
+threshold_output_7_6 <- shazam::findThreshold(dist_nearest_7_6$dist_nearest,
+                                  method = "gmm", model = "gamma-norm",
+                                  cutoff = "user", spc = 0.995)
+threshold_output_7_3 <- shazam::findThreshold(dist_nearest_7_3$dist_nearest,
+                                  method = "gmm", model = "gamma-norm",
+                                  cutoff = "user", spc = 0.995)
+threshold_output_8_5 <- shazam::findThreshold(dist_nearest_8_5$dist_nearest,
+                                  method = "gmm", model = "gamma-norm",
+                                  cutoff = "user", spc = 0.995)
+```
+
+```{r}
+threshold_1_6 <- threshold_output_1_6@threshold
+threshold_1_3 <- threshold_output_1_3@threshold
+threshold_1_4 <- threshold_output_1_4@threshold
+threshold_2_5 <- threshold_output_2_5@threshold
+threshold_2_3 <- threshold_output_2_3@threshold
+threshold_2_6 <- threshold_output_2_6@threshold
+threshold_4_1 <- threshold_output_4_1@threshold
+threshold_4_3 <- threshold_output_4_3@threshold
+threshold_4_6 <- threshold_output_4_6@threshold
+threshold_5_6 <- threshold_output_5_6@threshold
+threshold_5_3 <- threshold_output_5_3@threshold
+threshold_6_6 <- threshold_output_6_6@threshold
+threshold_7_4 <- threshold_output_7_4@threshold
+threshold_7_6 <- threshold_output_7_6@threshold
+threshold_7_3 <- threshold_output_7_3@threshold
+threshold_8_5 <- threshold_output_8_5@threshold
+```
+
+```{r}
+Tonsil_BCR_clone <- rbind(results_1_6, results_1_3, results_1_4,results_2_5,results_2_3,results_2_6,results_4_1,results_4_3,results_4_6,results_5_6,results_5_3,results_6_6,results_7_4,results_7_6,results_7_3,results_8_5)
+```
+
+```{r}
+## SHM Calculation
+Tonsil_BCR_clone_heavy <- dplyr::filter(Tonsil_BCR_clone, locus == "IGH")
+Tonsil_data_mut <- shazam::observedMutations(Tonsil_BCR_clone_heavy,
+                              sequenceColumn = "sequence_alignment",
+                              germlineColumn = "germline_alignment",
+                              regionDefinition = IMGT_V,
+                              frequency = TRUE,
+                              combine = TRUE,
+                              nproc = 1)
+
+```
+
