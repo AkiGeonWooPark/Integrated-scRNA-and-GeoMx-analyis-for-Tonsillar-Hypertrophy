@@ -113,7 +113,6 @@ validation_avg <- validation_avg[common_genes, ]
 discovery_avg_dense <- as.matrix(discovery_avg)
 validation_avg_dense <- as.matrix(validation_avg)
 
-## rownmae 의 순서 동일해야함
 all.equal(rownames(discovery_avg_dense), rownames(validation_avg_dense))
 all.equal(colnames(discovery_avg_dense), colnames(validation_avg_dense))
 
