@@ -251,3 +251,23 @@ Tonsil_data_mut <- shazam::observedMutations(Tonsil_BCR_clone_heavy,
 
 ```
 
+## Clonal Overlap
+```{r}
+## Jaccard index of shared clones between B cell subsets, per individual
+compute_jaccard <- function(df) {
+  clone_mat <- table(df$clone_id, df$Anno) > 0                         # clone x cell type
+  shared <- t(clone_mat) %*% clone_mat                                 # shared clones
+  n_clone <- diag(shared)
+  jaccard <- shared / (outer(n_clone, n_clone, "+") - shared)          # |A ∩ B| / |A ∪ B|
+  diag(jaccard) <- NA
+  jaccard
+}
+
+jaccard_individual <- meta %>%
+  split(.$Individual) %>%
+  purrr::map_dfr(function(df) {
+    as.data.frame(as.table(compute_jaccard(df))) %>%
+      rename(Anno_1 = Var1, Anno_2 = Var2, Jaccard = Freq) %>%
+      mutate(Individual = unique(df$Individual))
+  })
+```

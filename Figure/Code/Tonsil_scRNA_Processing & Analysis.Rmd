@@ -343,6 +343,24 @@ Tonsil_inte_20_1.0_DEG %>%
     slice_max(n = 2, order_by = avg_log2FC)
 ```
 
+## Pseudobulk DEG
+```{r}
+## Aggregate counts per individual x cell type
+obj_pseudo <- AggregateExpression(obj, assays = "RNA", return.seurat = TRUE,
+                                  group.by = c("Group", "Individual", "Anno"))
+obj_pseudo$Anno_Group <- paste(obj_pseudo$Anno, obj_pseudo$Group, sep = "_")
+
+Idents(obj_pseudo) <- "Group"
+obj_pseudo_Big   <- subset(obj_pseudo, idents = "Big")
+obj_pseudo_Small <- subset(obj_pseudo, idents = "Small")
+Idents(obj_pseudo) <- Idents(obj_pseudo_Big) <- Idents(obj_pseudo_Small) <- "Anno"
+
+pseudo_de <- function(obj, ident.1, ident.2) {
+  FindMarkers(obj, ident.1 = ident.1, ident.2 = ident.2, test.use = "DESeq2") %>%
+    tibble::rownames_to_column("gene")
+}
+```
+
 ## Pathway Analysis
 ```{r}
 library(org.Hs.eg.db)
